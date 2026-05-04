@@ -3,9 +3,9 @@ const mysql = require('mysql2');
 
 const app = express();
 
-// 🔥 SOPORTAR JSON + FORM DATA
-app.use(express.json({ limit: '10mb' }));
+// 🔥 SOPORTAR FORM-DATA (clave para Volley)
 app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
 // 🔥 POOL
 const db = mysql.createPool({
@@ -15,11 +15,10 @@ const db = mysql.createPool({
   database: process.env.MYSQLDATABASE,
   port: process.env.MYSQLPORT,
   waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+  connectionLimit: 10
 });
 
-// 🔥 TEST
+// 🔥 TEST CONEXIÓN
 db.getConnection((err, connection) => {
   if (err) {
     console.error("❌ Error conexión DB:", err);
@@ -30,38 +29,20 @@ db.getConnection((err, connection) => {
 });
 
 // =======================
-// 🔥 CREAR (FIX TOTAL)
+// 🔥 CREAR (SIMPLE Y CORRECTO)
 // =======================
 app.post('/create', (req, res) => {
 
-  console.log("👉 RAW BODY:", req.body);
+  console.log("👉 BODY:", req.body);
 
-  let nombre, edad, programa;
+  const nombre = req.body.nombre;
+  const edad = req.body.edad;
+  const programa = req.body.programa;
 
-  // 🔥 CASO 1: JSON correcto
-  if (req.body && typeof req.body === "object") {
-    nombre = req.body.nombre;
-    edad = req.body.edad;
-    programa = req.body.programa;
-  }
-
-  // 🔥 CASO 2: JSON como string (error común de Volley)
-  if (!nombre && typeof req.body === "string") {
-    try {
-      const data = JSON.parse(req.body);
-      nombre = data.nombre;
-      edad = data.edad;
-      programa = data.programa;
-    } catch (e) {
-      console.log("❌ Error parse JSON:", e);
-    }
-  }
-
-  // 🔥 VALIDACIÓN FUERTE
   if (!nombre || !edad || !programa) {
     return res.status(400).json({
       error: "Datos incompletos",
-      recibido: req.body
+      body: req.body
     });
   }
 
@@ -75,7 +56,7 @@ app.post('/create', (req, res) => {
       }
 
       res.json({
-        message: "OK",
+        message: "Guardado",
         id: result.insertId
       });
     }
@@ -103,15 +84,7 @@ app.post('/delete', (req, res) => {
 
   console.log("👉 DELETE BODY:", req.body);
 
-  let id = req.body.id;
-
-  // 🔥 FIX si viene como string JSON
-  if (!id && typeof req.body === "string") {
-    try {
-      const data = JSON.parse(req.body);
-      id = data.id;
-    } catch (e) {}
-  }
+  const id = req.body.id;
 
   if (!id) {
     return res.status(400).json({ error: "ID requerido" });
@@ -123,7 +96,7 @@ app.post('/delete', (req, res) => {
       return res.status(500).json(err);
     }
 
-    res.json({ message: "OK" });
+    res.json({ message: "Eliminado" });
   });
 });
 
